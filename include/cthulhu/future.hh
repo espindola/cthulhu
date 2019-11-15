@@ -18,149 +18,161 @@ class future_base {};
 
 template <typename Self>
 class future : future_base {
-    Self* derived() { return static_cast<Self*>(this); }
+	Self *derived() {
+		return static_cast<Self *>(this);
+	}
 
 public:
-    template <typename F>
-    then_future<Self, F> then(F&& f);
+	template <typename F>
+	then_future<Self, F> then(F &&f);
 };
 
 template <typename T>
 class CTHULHU_NODISCARD ready_future : public future<ready_future<T>> {
-    T value;
+	T value;
 
 public:
-    using output = T;
+	using output = T;
 
-    ready_future(T value) : value(std::move(value)) {}
-    std::optional<T> poll() { return value; };
+	ready_future(T value) : value(std::move(value)) {
+	}
+	std::optional<T> poll() {
+		return value;
+	};
 };
 
 template <>
 class CTHULHU_NODISCARD ready_future<void> : public future<ready_future<void>> {
 public:
-    using output = void;
+	using output = void;
 
-    ready_future() {}
-    bool poll() { return true; };
+	ready_future() {
+	}
+	bool poll() {
+		return true;
+	};
 };
 
 using ready_future_v = ready_future<void>;
 
 template <typename T>
 struct futurize {
-    static constexpr bool IsFuture = std::is_base_of_v<future_base, T>;
-    using type = std::conditional_t<IsFuture, T, ready_future<T>>;
-    template <typename F, typename... Args>
-    static type apply(F& f, Args&&... args) {
-        return f(args...);
-    }
+	static constexpr bool IsFuture = std::is_base_of_v<future_base, T>;
+	using type = std::conditional_t<IsFuture, T, ready_future<T>>;
+	template <typename F, typename... Args>
+	static type apply(F &f, Args &&... args) {
+		return f(args...);
+	}
 };
 
 template <>
 struct futurize<void> {
-    using type = ready_future_v;
-    template <typename F, typename... Args>
-    static type apply(F& f, Args&&... args) {
-        f(args...);
-        return ready_future_v();
-    }
+	using type = ready_future_v;
+	template <typename F, typename... Args>
+	static type apply(F &f, Args &&... args) {
+		f(args...);
+		return ready_future_v();
+	}
 };
 
 namespace internal {
 template <typename T, typename F>
 struct then_helper {
-    using futurator = futurize<std::invoke_result_t<F, T>>;
-    using type = typename futurator::type;
+	using futurator = futurize<std::invoke_result_t<F, T>>;
+	using type = typename futurator::type;
 
-    template <typename A>
-    static type apply(F& f, A&& v) {
-        return futurator::apply(f, *v);
-    }
+	template <typename A>
+	static type apply(F &f, A &&v) {
+		return futurator::apply(f, *v);
+	}
 };
 
 template <typename F>
 struct then_helper<void, F> {
-    using futurator = futurize<std::invoke_result_t<F>>;
-    using type = typename futurator::type;
+	using futurator = futurize<std::invoke_result_t<F>>;
+	using type = typename futurator::type;
 
-    static type apply(F& f, bool v) {
-        return futurator::apply(f);
-    }
+	static type apply(F &f, bool v) {
+		return futurator::apply(f);
+	}
 };
 }
 
 template <typename Fut, typename F>
 class CTHULHU_NODISCARD then_future : public future<then_future<Fut, F>> {
-    using helper = internal::then_helper<typename Fut::output, F>;
-    using output_future = typename helper::type;
-    union {
-        struct {
-            Fut fut;
-            F func;
-        } before;
-        output_future after;
-    };
-    bool call_done = false;
+	using helper = internal::then_helper<typename Fut::output, F>;
+	using output_future = typename helper::type;
+	union {
+		struct {
+			Fut fut;
+			F func;
+		} before;
+		output_future after;
+	};
+	bool call_done = false;
 
 public:
-    using output = typename output_future::output;
+	using output = typename output_future::output;
 
-    then_future(Fut fut, F f)
-        : before{std::move(fut), std::move(f)} {}
-    then_future(then_future&& o) : call_done(o.call_done) {
-        if (call_done) {
-            new (&after) output_future(std::move(o.after));
-        } else {
-            new (&before.fut) Fut(std::move(o.before.fut));
-            new (&before.func) F(std::move(o.before.func));
-        }
-    }
-    ~then_future() {
-        if (call_done) {
-            std::destroy_at(&after);
-        } else {
-            std::destroy_at(&before.fut);
-            std::destroy_at(&before.func);
-        }
-    }
-    using poll_result =
-        std::invoke_result_t<decltype(&output_future::poll), output_future>;
-    poll_result poll() {
-        if (!call_done) {
-            auto fut1_poll = before.fut.poll();
-            if (!fut1_poll) {
-                return poll_result();
-            }
-            after = helper::apply(before.func, fut1_poll);
-            call_done = true;
-        }
-        return after.poll();
-    }
+	then_future(Fut fut, F f) : before{std::move(fut), std::move(f)} {
+	}
+	then_future(then_future &&o) : call_done(o.call_done) {
+		if (call_done) {
+			new (&after) output_future(std::move(o.after));
+		} else {
+			new (&before.fut) Fut(std::move(o.before.fut));
+			new (&before.func) F(std::move(o.before.func));
+		}
+	}
+	~then_future() {
+		if (call_done) {
+			std::destroy_at(&after);
+		} else {
+			std::destroy_at(&before.fut);
+			std::destroy_at(&before.func);
+		}
+	}
+	using poll_result = std::invoke_result_t<decltype(&output_future::poll),
+						 output_future>;
+	poll_result poll() {
+		if (!call_done) {
+			auto fut1_poll = before.fut.poll();
+			if (!fut1_poll) {
+				return poll_result();
+			}
+			after = helper::apply(before.func, fut1_poll);
+			call_done = true;
+		}
+		return after.poll();
+	}
 };
 
 template <typename Self>
 template <typename F>
-then_future<Self, F> future<Self>::then(F&& f) {
-    return then_future<Self, F>(std::move(*derived()), std::forward<F>(f));
+then_future<Self, F> future<Self>::then(F &&f) {
+	return then_future<Self, F>(std::move(*derived()), std::forward<F>(f));
 }
 
 struct task {
-    virtual bool poll() = 0;
-    virtual ~task() = default;
+	virtual bool poll() = 0;
+	virtual ~task() = default;
 };
 
 template <typename Fut>
 struct future_task final : public task {
-    Fut fut;
-    future_task(Fut fut) : fut(std::move(fut)) {}
-    virtual bool poll() override { return fut.poll(); }
+	Fut fut;
+	future_task(Fut fut) : fut(std::move(fut)) {
+	}
+	virtual bool poll() override {
+		return fut.poll();
+	}
 };
 
 CTHULHU_EXPORT void run(transfer_ptr<task> fut);
 
 template <typename Fut>
-void run(Fut&& fut) {
-    run(transfer_ptr<task>(std::make_unique<future_task<Fut>>(std::move(fut))));
+void run(Fut &&fut) {
+	run(transfer_ptr<task>(
+		std::make_unique<future_task<Fut>>(std::move(fut))));
 }
 }
