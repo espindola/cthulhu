@@ -7,6 +7,9 @@
 #include <memory>
 #include <optional>
 
+// Work around https://bugs.llvm.org/show_bug.cgi?id=44013
+#define CTHULHU_NODISCARD [[nodiscard]]
+
 namespace cthulhu {
 template <typename Fut, typename F>
 class then_future;
@@ -23,7 +26,7 @@ public:
 };
 
 template <typename T>
-class [[nodiscard]] ready_future : public future<ready_future<T>> {
+class CTHULHU_NODISCARD ready_future : public future<ready_future<T>> {
     T value;
 
 public:
@@ -34,7 +37,7 @@ public:
 };
 
 template <>
-class [[nodiscard]] ready_future<void> : public future<ready_future<void>> {
+class CTHULHU_NODISCARD ready_future<void> : public future<ready_future<void>> {
 public:
     using output = void;
 
@@ -88,7 +91,7 @@ struct then_helper<void, F> {
 }
 
 template <typename Fut, typename F>
-class [[nodiscard]] then_future : public future<then_future<Fut, F>> {
+class CTHULHU_NODISCARD then_future : public future<then_future<Fut, F>> {
     using helper = internal::then_helper<typename Fut::output, F>;
     using output_future = typename helper::type;
     union {
