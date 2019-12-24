@@ -1,6 +1,6 @@
 // Copyright (C) 2019 ScyllaDB
 
-#include <cthulhu/future.hh>
+#include <cthulhu/future_task.hh>
 
 void cthulhu::run(transfer_ptr<task> tsk) {
 	std::unique_ptr<task> own = tsk.take();

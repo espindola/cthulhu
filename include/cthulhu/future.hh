@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <cthulhu/compiler.hh>
-#include <cthulhu/transfer_ptr.hh>
 #include <memory>
 #include <optional>
 
@@ -157,28 +155,5 @@ template <typename Self>
 template <typename F>
 then_future<Self, F> future<Self>::then(F &&f) {
 	return then_future<Self, F>(std::move(*derived()), std::forward<F>(f));
-}
-
-struct task {
-	virtual bool poll() = 0;
-	virtual ~task() = default;
-};
-
-template <typename Fut>
-struct future_task final : public task {
-	Fut fut;
-	future_task(Fut &&fut) : fut(std::move(fut)) {
-	}
-	virtual bool poll() override {
-		return fut.poll();
-	}
-};
-
-CTHULHU_EXPORT void run(transfer_ptr<task> fut);
-
-template <typename Fut>
-void run(Fut &&fut) {
-	run(transfer_ptr<task>(
-		std::make_unique<future_task<Fut>>(std::move(fut))));
 }
 }

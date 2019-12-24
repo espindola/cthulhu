@@ -7,7 +7,7 @@ project('libcthulhu',
                            'cpp_rtti=false',
                            'b_staticpic=false'])
 incdir = include_directories('include')
-lib = library('cthulhu', 'future.cc', include_directories : incdir, gnu_symbol_visibility: 'hidden', cpp_args: '-DCTHULHU_BUILD')
+lib = library('cthulhu', 'task.cc', include_directories : incdir, gnu_symbol_visibility: 'hidden', cpp_args: '-DCTHULHU_BUILD')
 dep = declare_dependency(link_with : lib, include_directories : incdir)
 
 executable('demo', 'demo.cc', dependencies: dep,  gnu_symbol_visibility: 'hidden')

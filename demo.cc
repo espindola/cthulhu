@@ -1,6 +1,7 @@
 // Copyright (C) 2019 ScyllaDB
 
 #include <cthulhu/future.hh>
+#include <cthulhu/future_task.hh>
 
 #include <stdio.h>
 
