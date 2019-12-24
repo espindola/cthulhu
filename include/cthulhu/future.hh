@@ -9,6 +9,8 @@
 #define CTHULHU_NODISCARD [[nodiscard]]
 
 namespace cthulhu {
+class reactor;
+
 template <typename Fut, typename F>
 class then_future;
 
@@ -39,7 +41,7 @@ public:
 
 	ready_future(T value) : value(std::move(value)) {
 	}
-	std::optional<T> poll() {
+	std::optional<T> poll(reactor &react) {
 		return value;
 	};
 };
@@ -51,7 +53,7 @@ public:
 
 	ready_future() {
 	}
-	bool poll() {
+	bool poll(reactor &react) {
 		return true;
 	};
 };
@@ -135,10 +137,10 @@ public:
 		}
 	}
 	using poll_result = std::invoke_result_t<decltype(&output_future::poll),
-						 output_future>;
-	poll_result poll() {
+						 output_future, reactor &>;
+	poll_result poll(reactor &react) {
 		if (!call_done) {
-			auto fut1_poll = before.fut.poll();
+			auto fut1_poll = before.fut.poll(react);
 			if (!fut1_poll) {
 				return poll_result();
 			}
@@ -147,7 +149,7 @@ public:
 			new (&after) output_future(std::move(res));
 			call_done = true;
 		}
-		return after.poll();
+		return after.poll(react);
 	}
 };
 

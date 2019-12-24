@@ -1,7 +1,7 @@
 // Copyright (C) 2019 ScyllaDB
 
 #include <cthulhu/future.hh>
-#include <cthulhu/future_task.hh>
+#include <cthulhu/reactor.hh>
 
 #include <stdio.h>
 
@@ -20,6 +20,9 @@ int main() {
 			   .then([](double y) {
 				   printf("zed %f\n", y);
 			   });
-	run(std::move(fut));
+
+	reactor react;
+	react.add(std::move(fut));
+	react.run();
 	return 0;
 }
