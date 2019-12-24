@@ -24,5 +24,10 @@ public:
 		ptr = nullptr;
 		return ret;
 	}
+	T *release() {
+		T *ret = ptr;
+		ptr = nullptr;
+		return ret;
+	}
 };
 }
