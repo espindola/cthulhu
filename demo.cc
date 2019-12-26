@@ -1,21 +1,35 @@
 // Copyright (C) 2019 ScyllaDB
 
-#include <cthulhu/future.hh>
+#include <cthulhu/either.hh>
 #include <cthulhu/reactor.hh>
 
 #include <stdio.h>
 
 using namespace cthulhu;
 
-int main() {
+static auto get_fut() {
+	return ready_future_v().then([] {
+		printf("get_fut\n");
+		return 41.0;
+	});
+}
+
+int main(int argc, const char *argv[]) {
 	auto fut = ready_future_v()
 			   .then([a = std::make_unique<int>(42)]() {
 				   printf("foo\n");
 				   return 42;
 			   })
-			   .then([](int x) {
+			   .then([argc](int x) {
+				   using A = ready_future<double>;
+				   using B = decltype(get_fut());
+				   using ret_type = either<A, B>;
+
 				   printf("bar\n");
-				   return double(x);
+				   if (argc > 1) {
+					   return ret_type(double(x));
+				   }
+				   return ret_type(get_fut());
 			   })
 			   .then([](double y) {
 				   printf("zed %f\n", y);

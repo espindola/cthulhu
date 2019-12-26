@@ -103,6 +103,9 @@ struct then_helper<void, F> {
 };
 }
 
+template <typename Fut>
+using poll_result = std::invoke_result_t<decltype(&Fut::poll), Fut, reactor &>;
+
 template <typename Fut, typename F>
 class CTHULHU_NODISCARD then_future : public future<then_future<Fut, F>> {
 	using helper = internal::then_helper<typename Fut::output, F>;
@@ -136,13 +139,13 @@ public:
 			std::destroy_at(&before);
 		}
 	}
-	using poll_result = std::invoke_result_t<decltype(&output_future::poll),
-						 output_future, reactor &>;
-	poll_result poll(reactor &react) {
+
+	using pr = poll_result<output_future>;
+	pr poll(reactor &react) {
 		if (!call_done) {
 			auto fut1_poll = before.fut.poll(react);
 			if (!fut1_poll) {
-				return poll_result();
+				return pr();
 			}
 			auto res = helper::apply(before.func, fut1_poll);
 			std::destroy_at(&before);
