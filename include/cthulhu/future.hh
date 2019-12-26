@@ -139,7 +139,9 @@ public:
 			if (!fut1_poll) {
 				return poll_result();
 			}
-			after = helper::apply(before.func, fut1_poll);
+			auto res = helper::apply(before.func, fut1_poll);
+			std::destroy_at(&before);
+			new (&after) output_future(std::move(res));
 			call_done = true;
 		}
 		return after.poll();

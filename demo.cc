@@ -8,7 +8,7 @@ using namespace cthulhu;
 
 int main() {
 	auto fut = ready_future_v()
-			   .then([]() {
+			   .then([a = std::make_unique<int>(42)]() {
 				   printf("foo\n");
 				   return 42;
 			   })
