@@ -102,11 +102,12 @@ template <typename Fut, typename F>
 class CTHULHU_NODISCARD then_future : public future<then_future<Fut, F>> {
 	using helper = internal::then_helper<typename Fut::output, F>;
 	using output_future = typename helper::type;
+	struct before_t {
+		Fut fut;
+		F func;
+	};
 	union {
-		struct {
-			Fut fut;
-			F func;
-		} before;
+		before_t before;
 		output_future after;
 	};
 	bool call_done = false;
@@ -120,16 +121,14 @@ public:
 		if (call_done) {
 			new (&after) output_future(std::move(o.after));
 		} else {
-			new (&before.fut) Fut(std::move(o.before.fut));
-			new (&before.func) F(std::move(o.before.func));
+			new (&before) before_t(std::move(o.before));
 		}
 	}
 	~then_future() {
 		if (call_done) {
 			std::destroy_at(&after);
 		} else {
-			std::destroy_at(&before.fut);
-			std::destroy_at(&before.func);
+			std::destroy_at(&before);
 		}
 	}
 	using poll_result = std::invoke_result_t<decltype(&output_future::poll),
@@ -161,7 +160,7 @@ struct task {
 template <typename Fut>
 struct future_task final : public task {
 	Fut fut;
-	future_task(Fut fut) : fut(std::move(fut)) {
+	future_task(Fut &&fut) : fut(std::move(fut)) {
 	}
 	virtual bool poll() override {
 		return fut.poll();
