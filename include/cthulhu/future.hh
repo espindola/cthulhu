@@ -14,7 +14,12 @@ namespace cthulhu {
 template <typename Fut, typename F>
 class then_future;
 
-class future_base {};
+class future_base {
+public:
+	future_base(const future_base &) = delete;
+	future_base(future_base &&) = default;
+	future_base() = default;
+};
 
 template <typename Self>
 class future : future_base {
