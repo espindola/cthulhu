@@ -39,7 +39,7 @@ class CTHULHU_NODISCARD ready_future : public future<ready_future<T>> {
 public:
 	using output = T;
 
-	ready_future(T value) : value(std::move(value)) {
+	ready_future(T &&value) : value(std::move(value)) {
 	}
 	std::optional<T> poll(reactor &react) {
 		return value;
