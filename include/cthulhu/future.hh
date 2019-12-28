@@ -42,7 +42,7 @@ public:
 	ready_future(T &&value) : value(std::move(value)) {
 	}
 	std::optional<T> poll(reactor &react) {
-		return value;
+		return std::move(value);
 	};
 };
 
@@ -66,7 +66,7 @@ struct futurize {
 	using type = std::conditional_t<IsFuture, T, ready_future<T>>;
 	template <typename F, typename... Args>
 	static type apply(F &f, Args &&... args) {
-		return f(args...);
+		return f(std::forward<Args>(args)...);
 	}
 };
 
@@ -75,7 +75,7 @@ struct futurize<void> {
 	using type = ready_future_v;
 	template <typename F, typename... Args>
 	static type apply(F &f, Args &&... args) {
-		f(args...);
+		f(std::forward<Args>(args)...);
 		return ready_future_v();
 	}
 };
@@ -88,7 +88,7 @@ struct then_helper {
 
 	template <typename A>
 	static type apply(F &f, A &&v) {
-		return futurator::apply(f, *v);
+		return futurator::apply(f, std::move(*v));
 	}
 };
 
