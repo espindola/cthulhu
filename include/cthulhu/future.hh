@@ -2,11 +2,10 @@
 
 #pragma once
 
+#include <cthulhu/compiler.hh>
+
 #include <memory>
 #include <optional>
-
-// Work around https://bugs.llvm.org/show_bug.cgi?id=44013
-#define CTHULHU_NODISCARD [[nodiscard]]
 
 namespace cthulhu {
 class reactor;
