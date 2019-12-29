@@ -1,11 +1,25 @@
 // Copyright (C) 2019 ScyllaDB
 
 #include <cthulhu/either.hh>
+#include <cthulhu/loop.hh>
 #include <cthulhu/reactor.hh>
 
 #include <stdio.h>
 
 using namespace cthulhu;
+
+auto test_loop() {
+	loop l([i = 0]() mutable {
+		++i;
+		printf("in loop %d\n", i);
+		if (i == 3) {
+			return ready_future<stop_iteration>(
+				stop_iteration::yes);
+		}
+		return ready_future<stop_iteration>(stop_iteration::no);
+	});
+	return l;
+}
 
 static auto get_fut() {
 	return ready_future_v().then([] {
@@ -40,6 +54,8 @@ int main(int argc, const char *argv[]) {
 
 	reactor react;
 	react.add(std::move(fut));
+
+	react.add(test_loop());
 	react.run();
 	return 0;
 }
