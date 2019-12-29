@@ -19,6 +19,7 @@ public:
 	future_base(const future_base &) = delete;
 	future_base(future_base &&) = default;
 	future_base() = default;
+	future_base &operator=(future_base &&o) = default;
 };
 
 template <typename Self>
