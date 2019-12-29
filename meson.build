@@ -12,7 +12,7 @@ incdir = include_directories('include')
 boost_dep = dependency('boost')
 
 lib = library('cthulhu',
-              ['result.cc', 'reactor.cc'],
+              ['result.cc', 'reactor.cc', 'file_descriptor.cc'],
               include_directories : incdir,
               dependencies: boost_dep,
               gnu_symbol_visibility: 'hidden',
