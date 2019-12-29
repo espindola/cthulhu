@@ -124,6 +124,12 @@ class CTHULHU_NODISCARD then_future : public future<then_future<Fut, F>> {
 public:
 	using output = typename output_future::output;
 
+	then_future &operator=(then_future &&o) {
+		this->~then_future();
+		new (this) then_future(std::move(o));
+		return *this;
+	}
+
 	then_future(Fut fut, F f) : before{std::move(fut), std::move(f)} {
 	}
 	then_future(then_future &&o) : call_done(o.call_done) {
