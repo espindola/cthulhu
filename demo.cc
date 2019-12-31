@@ -1,5 +1,6 @@
 // Copyright (C) 2019 ScyllaDB
 
+#include <cthulhu/do-with.hh>
 #include <cthulhu/either.hh>
 #include <cthulhu/loop.hh>
 #include <cthulhu/reactor.hh>
@@ -7,6 +8,18 @@
 #include <stdio.h>
 
 using namespace cthulhu;
+
+static auto test_do_with() {
+	return do_with(int(0), [](int &v) {
+		return ready_future_v()
+			.then([&v]() {
+				++v;
+			})
+			.then([&v] {
+				return v;
+			});
+	});
+}
 
 auto test_loop() {
 	loop l([i = 0]() mutable {
@@ -52,10 +65,15 @@ int main(int argc, const char *argv[]) {
 			   .then([](std::unique_ptr<int> y) {
 			   });
 
+	auto fut2 = test_do_with().then([](int v) {
+		printf("do_with test %d\n", v);
+	});
+
 	reactor react;
 	react.add(std::move(fut));
 
 	react.add(test_loop());
+	react.add(std::move(fut2));
 	react.run();
 	return 0;
 }
