@@ -20,6 +20,7 @@ file_descriptor::~file_descriptor() {
 	// * The fd is corrupted (EBADF) and an assert is fine.
 	// * EINTR, but we don't support signals for now.
 	assert(r == 0);
+	(void)r;
 	fd = -1;
 }
 
