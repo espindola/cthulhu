@@ -69,7 +69,13 @@ int main(int argc, const char *argv[]) {
 		printf("do_with test %d\n", v);
 	});
 
-	reactor react;
+	posix_result<reactor> react_res = reactor::create();
+	if (!react_res) {
+		react_res.error().print_error(stderr);
+		return 1;
+	}
+	reactor &react = *react_res;
+
 	react.add(std::move(fut));
 
 	react.add(test_loop());
