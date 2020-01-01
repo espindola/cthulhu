@@ -12,7 +12,6 @@ struct file_descriptor {
 	file_descriptor(const file_descriptor &) = delete;
 	CTHULHU_EXPORT file_descriptor(file_descriptor &&o);
 
-	posix_error close();
 	CTHULHU_EXPORT ~file_descriptor();
 };
 }

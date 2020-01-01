@@ -10,14 +10,17 @@ file_descriptor::file_descriptor(int fd) : fd(fd) {
 	assert(fd >= 0);
 }
 
-posix_error file_descriptor::close() {
-	int r = ::close(fd);
-	fd = -1;
-	return r;
-}
-
 file_descriptor::~file_descriptor() {
-	assert(fd == -1 && "file was not closed");
+	if (fd == -1) {
+		return;
+	}
+	int r = ::close(fd);
+	// So far all file_descriptors are sockets. As far as I can tell the
+	// only cases where closing a socket can fail are:
+	// * The fd is corrupted (EBADF) and an assert is fine.
+	// * EINTR, but we don't support signals for now.
+	assert(r == 0);
+	fd = -1;
 }
 
 file_descriptor::file_descriptor(file_descriptor &&o) : fd(o.fd) {
