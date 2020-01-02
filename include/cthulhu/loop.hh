@@ -5,26 +5,59 @@
 #include <cthulhu/future.hh>
 
 namespace cthulhu {
-enum class stop_iteration { no, yes };
+template <typename T>
+class stop_iteration {
+	std::optional<T> val;
+	stop_iteration() {
+	}
+	stop_iteration(T &&v) : val(std::move(v)) {
+	}
+
+public:
+	using value_type = T;
+	static stop_iteration yes(T &&val) {
+		return stop_iteration(std::move(val));
+	}
+	static stop_iteration no() {
+		return stop_iteration();
+	}
+	operator bool() const {
+		return (bool)val;
+	}
+	T &value() {
+		return *val;
+	}
+};
+
+class stop_iteration_v : public stop_iteration<monostate> {
+	stop_iteration_v(); // never implement
+public:
+	static stop_iteration<monostate> yes() {
+		return stop_iteration<monostate>::yes(monostate{});
+	}
+};
 
 template <typename F>
 class CTHULHU_NODISCARD loop : public future<loop<F>> {
 	F func;
-	std::invoke_result_t<F> fut;
+	using fut_t = std::invoke_result_t<F>;
+	fut_t fut;
 
 public:
-	using output = void;
+	using output = typename fut_t::output::value_type;
 	loop(F &&func) : func(std::move(func)), fut(this->func()) {
 	}
 
-	std::optional<monostate> poll(reactor &react) {
+	std::optional<output> poll(reactor &react) {
 		for (;;) {
-			std::optional<stop_iteration> r = fut.poll(react);
+			std::optional<stop_iteration<output>> r =
+				fut.poll(react);
 			if (!r) {
 				return std::nullopt;
 			}
-			if (*r == stop_iteration::yes) {
-				return monostate{};
+			stop_iteration<output> &v = *r;
+			if (v) {
+				return std::move(v.value());
 			}
 			fut = func();
 		}

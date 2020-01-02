@@ -26,9 +26,9 @@ auto test_loop() {
 		++i;
 		printf("in loop %d\n", i);
 		if (i == 3) {
-			return ready_future(stop_iteration::yes);
+			return ready_future(stop_iteration_v::yes());
 		}
-		return ready_future(stop_iteration::no);
+		return ready_future(stop_iteration_v::no());
 	});
 	return l;
 }
