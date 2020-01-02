@@ -35,8 +35,7 @@ public:
 		}
 	}
 
-	using pr = poll_result<FutA>;
-	pr poll(reactor &react) {
+	std::optional<output> poll(reactor &react) {
 		if (is_a) {
 			return futa.poll(react);
 		}

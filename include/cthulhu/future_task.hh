@@ -10,7 +10,7 @@ struct future_task final : public task {
 	Fut fut;
 	future_task(Fut &&fut) : fut(std::move(fut)) {
 	}
-	virtual bool poll(reactor &react) override {
+	virtual std::optional<monostate> poll(reactor &react) override {
 		return fut.poll(react);
 	}
 };

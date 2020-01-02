@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cthulhu/compiler.hh>
+#include <cthulhu/monostate.hh>
 
 #include <memory>
 #include <optional>
@@ -46,19 +47,11 @@ public:
 	};
 };
 
-template <>
-class CTHULHU_NODISCARD ready_future<void> : public future<ready_future<void>> {
+class CTHULHU_NODISCARD ready_future_v : public ready_future<monostate> {
 public:
-	using output = void;
-
-	ready_future() {
+	ready_future_v() : ready_future<monostate>(monostate{}) {
 	}
-	bool poll(reactor &react) {
-		return true;
-	};
 };
-
-using ready_future_v = ready_future<void>;
 
 template <typename T>
 struct futurize {
@@ -93,18 +86,15 @@ struct then_helper {
 };
 
 template <typename F>
-struct then_helper<void, F> {
+struct then_helper<monostate, F> {
 	using futurator = futurize<std::invoke_result_t<F>>;
 	using type = typename futurator::type;
 
-	static type apply(F &f, bool v) {
+	static type apply(F &f, std::optional<monostate> v) {
 		return futurator::apply(f);
 	}
 };
 }
-
-template <typename Fut>
-using poll_result = std::invoke_result_t<decltype(&Fut::poll), Fut, reactor &>;
 
 template <typename Fut, typename F>
 class CTHULHU_NODISCARD then_future : public future<then_future<Fut, F>> {
@@ -146,12 +136,11 @@ public:
 		}
 	}
 
-	using pr = poll_result<output_future>;
-	pr poll(reactor &react) {
+	std::optional<output> poll(reactor &react) {
 		if (!call_done) {
 			auto fut1_poll = before.fut.poll(react);
 			if (!fut1_poll) {
-				return pr();
+				return std::nullopt;
 			}
 			auto res = helper::apply(before.func, fut1_poll);
 			std::destroy_at(&before);

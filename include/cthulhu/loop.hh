@@ -17,14 +17,14 @@ public:
 	loop(F &&func) : func(std::move(func)), fut(this->func()) {
 	}
 
-	bool poll(reactor &react) {
+	std::optional<monostate> poll(reactor &react) {
 		for (;;) {
 			std::optional<stop_iteration> r = fut.poll(react);
 			if (!r) {
-				return false;
+				return std::nullopt;
 			}
 			if (*r == stop_iteration::yes) {
-				return true;
+				return monostate{};
 			}
 			fut = func();
 		}

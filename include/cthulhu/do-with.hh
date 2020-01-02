@@ -37,7 +37,7 @@ public:
 		}
 	}
 
-	poll_result<fut_t> poll(reactor &react) {
+	std::optional<output> poll(reactor &react) {
 		if (!called_func) {
 			auto tmp = func(val);
 			func.~F();
