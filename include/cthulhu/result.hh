@@ -15,8 +15,8 @@ class CTHULHU_NODISCARD posix_error {
 public:
 	posix_error(int error_number);
 	static posix_error current();
-	static posix_error ok();
-	operator bool();
+	CTHULHU_EXPORT static posix_error ok();
+	CTHULHU_EXPORT operator bool();
 	CTHULHU_EXPORT void print_error(FILE *stream);
 };
 
