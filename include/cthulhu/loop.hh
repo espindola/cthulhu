@@ -41,17 +41,20 @@ template <typename F>
 class CTHULHU_NODISCARD loop : public future<loop<F>> {
 	F func;
 	using fut_t = std::invoke_result_t<F>;
-	fut_t fut;
+	std::optional<fut_t> fut;
 
 public:
 	using output = typename fut_t::output::value_type;
-	loop(F &&func) : func(std::move(func)), fut(this->func()) {
+	loop(F &&func) : func(std::move(func)) {
 	}
 
 	std::optional<output> poll(reactor &react) {
+		if (!fut) {
+			fut.emplace(func());
+		}
 		for (;;) {
 			std::optional<stop_iteration<output>> r =
-				fut.poll(react);
+				fut->poll(react);
 			if (!r) {
 				return std::nullopt;
 			}
@@ -59,7 +62,7 @@ public:
 			if (v) {
 				return std::move(v.value());
 			}
-			fut = func();
+			fut.emplace(func());
 		}
 	}
 };
