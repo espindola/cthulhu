@@ -13,22 +13,19 @@ using namespace cthulhu;
 using stop_error = stop_iteration<posix_error>;
 
 static auto write_all(char *buf, tcp_stream &stream, size_t n) {
-	return do_with(std::move(n), [buf, &stream](size_t &n) {
-		return loop([buf, &stream, &n] {
-			return stream.write(buf, n).then(
-				[&n](posix_result<size_t> res) {
-					if (!res) {
-						return stop_error::yes(
-							std::move(res.error()));
-					}
-					n -= *res;
-					if (n == 0) {
-						return stop_error::yes(
-							posix_error::ok());
-					}
+	return loop([buf, &stream, n]() mutable {
+		return stream.write(buf, n).then(
+			[&n](posix_result<size_t> res) {
+				if (!res) {
+					return stop_error::yes(
+						std::move(res.error()));
+				}
+				n -= *res;
+				if (n != 0) {
 					return stop_error::no();
-				});
-		});
+				}
+				return stop_error::yes(posix_error::ok());
+			});
 	});
 }
 
@@ -62,14 +59,9 @@ static auto loop_iter(char *buf, tcp_stream &stream, size_t buf_size) {
 
 static auto echo_stream(tcp_stream stream) {
 	using buf_t = std::array<char, 1024>;
-	return do_with(std::make_pair(buf_t(), std::move(stream)),
-		       [](std::pair<buf_t, tcp_stream> &v) {
-			       return loop([&v] {
-				       return loop_iter(v.first.data(),
-							v.second,
-							v.first.size());
-			       });
-		       });
+	return loop([buf = buf_t(), stream = std::move(stream)]() mutable {
+		return loop_iter(buf.data(), stream, buf.size());
+	});
 }
 
 static auto get_tcp_demo() {
