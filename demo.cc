@@ -1,6 +1,5 @@
 // Copyright (C) 2019 ScyllaDB
 
-#include <cthulhu/do-with.hh>
 #include <cthulhu/either.hh>
 #include <cthulhu/loop.hh>
 #include <cthulhu/reactor.hh>
