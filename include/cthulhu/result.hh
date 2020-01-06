@@ -31,7 +31,11 @@ class CTHULHU_NODISCARD result {
 public:
 	result(T &&value) : value(std::move(value)), has_value(true) {
 	}
+	result(const T &value) : value(value), has_value(true) {
+	}
 	result(E &&err) : err(std::move(err)), has_value(false) {
+	}
+	result(const E &err) : err(err), has_value(false) {
 	}
 	result(result &&o) : has_value(o.has_value) {
 		if (has_value) {

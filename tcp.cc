@@ -51,7 +51,7 @@ std::optional<posix_result<tcp_stream>> connect_future::poll(reactor &react) {
 	}
 
 	if (posix_error err = react.block_on_write(fd)) {
-		return posix_result<tcp_stream>(std::move(err));
+		return posix_result<tcp_stream>(err);
 	}
 
 	return std::nullopt;
