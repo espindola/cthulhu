@@ -39,7 +39,8 @@ class CTHULHU_NODISCARD ready_future : public future<ready_future<T>> {
 public:
 	using output = T;
 
-	ready_future(T &&value) : value(std::move(value)) {
+	template <typename U>
+	ready_future(U &&value) : value(std::forward<U>(value)) {
 	}
 	std::optional<T> poll(reactor &react) {
 		return std::move(value);

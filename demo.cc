@@ -74,7 +74,7 @@ static auto get_tcp_demo() {
 				return ret_type(
 					echo_stream(std::move(*stream)));
 			} else {
-				return ret_type(std::move(stream.error()));
+				return ret_type(stream.error());
 			}
 		})
 		.then([](posix_error e) {
