@@ -16,8 +16,7 @@ static auto write_all(char *buf, tcp_stream &stream, size_t n) {
 		return stream.write(buf, n).then(
 			[&n](posix_result<size_t> res) {
 				if (!res) {
-					return stop_error::yes(
-						std::move(res.error()));
+					return stop_error::yes(res.error());
 				}
 				n -= *res;
 				if (n != 0) {
@@ -31,7 +30,7 @@ static auto write_all(char *buf, tcp_stream &stream, size_t n) {
 static auto write_aux(char *buf, tcp_stream &stream, size_t n) {
 	return write_all(buf, stream, n).then([](posix_error e) {
 		if (e) {
-			return stop_error::yes(std::move(e));
+			return stop_error::yes(e);
 		}
 		return stop_error::no();
 	});
@@ -44,8 +43,7 @@ static auto loop_iter(char *buf, tcp_stream &stream, size_t buf_size) {
 			using B = decltype(write_aux(buf, stream, *res));
 			using ret_type = either<A, B>;
 			if (!res) {
-				return ret_type(stop_error::yes(
-					std::move(res.error())));
+				return ret_type(stop_error::yes(res.error()));
 			}
 			size_t v = *res;
 			if (v == 0) {

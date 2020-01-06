@@ -10,13 +10,15 @@ class stop_iteration {
 	std::optional<T> val;
 	stop_iteration() {
 	}
-	stop_iteration(T &&v) : val(std::move(v)) {
+	template <typename U>
+	stop_iteration(U &&v) : val(std::forward<U>(v)) {
 	}
 
 public:
 	using value_type = T;
-	static stop_iteration yes(T &&val) {
-		return stop_iteration(std::move(val));
+	template <typename U>
+	static stop_iteration yes(U &&val) {
+		return stop_iteration(std::forward<U>(val));
 	}
 	static stop_iteration no() {
 		return stop_iteration();
