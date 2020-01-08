@@ -30,7 +30,7 @@ public:
 
 	CTHULHU_EXPORT std::optional<output> poll(reactor &react);
 
-	connect_future(posix_error &&e);
+	connect_future(posix_error e);
 	connect_future(tcp_stream &&s);
 };
 

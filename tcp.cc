@@ -57,7 +57,7 @@ std::optional<posix_result<tcp_stream>> connect_future::poll(reactor &react) {
 	return std::nullopt;
 }
 
-connect_future::connect_future(posix_error &&e) : res(std::move(e)) {
+connect_future::connect_future(posix_error e) : res(e) {
 }
 
 connect_future::connect_future(tcp_stream &&s) : res(std::move(s)) {
