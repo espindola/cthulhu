@@ -16,25 +16,34 @@ class reactor {
 	boost::intrusive::list<task> ready;
 	task *current_task;
 	unsigned num_blocked;
+	int result;
 
 	reactor(int epoll_fd);
 	posix_error block_on(file_descriptor &fd, task **t, uint32_t events);
+	CTHULHU_EXPORT void run();
 
 public:
 	reactor(reactor &&react);
 	CTHULHU_EXPORT ~reactor();
 	CTHULHU_EXPORT static posix_result<reactor> create();
-	CTHULHU_EXPORT void add(transfer_ptr<task> tsk);
+	CTHULHU_EXPORT void spawn(transfer_ptr<task> tsk);
 
 	posix_error block_on_write(file_descriptor &fd);
 	posix_error block_on_read(file_descriptor &fd);
 
 	template <typename Fut>
-	void add(Fut &&fut) {
-		add(transfer_ptr<task>(
+	void spawn(Fut &&fut) {
+		spawn(transfer_ptr<task>(
 			std::make_unique<future_task<Fut>>(std::move(fut))));
 	}
 
-	CTHULHU_EXPORT void run();
+	template <typename Fut>
+	int run(Fut &&fut) {
+		spawn(fut.then([this](int v) {
+			result = v;
+		}));
+		run();
+		return result;
+	}
 };
 }

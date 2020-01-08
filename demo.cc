@@ -79,7 +79,9 @@ static auto get_tcp_demo() {
 			if (e) {
 				e.print_error(stderr);
 				fprintf(stderr, "\n");
+				return 1;
 			}
+			return 0;
 		});
 }
 
@@ -91,8 +93,5 @@ int main(int argc, const char *argv[]) {
 	}
 	reactor &react = *react_res;
 
-	react.add(get_tcp_demo());
-	react.run();
-
-	return 0;
+	return react.run(get_tcp_demo());
 }

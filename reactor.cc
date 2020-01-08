@@ -8,7 +8,7 @@
 
 using namespace cthulhu;
 
-void reactor::add(transfer_ptr<task> tsk) {
+void reactor::spawn(transfer_ptr<task> tsk) {
 	ready.push_back(*tsk.release());
 }
 
