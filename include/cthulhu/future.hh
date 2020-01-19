@@ -84,7 +84,7 @@ struct then_helper {
 
 	template <typename A>
 	static type apply(F &f, A &&v) {
-		return futurator::apply(f, std::move(*v));
+		return futurator::apply(f, std::forward<A>(v));
 	}
 };
 
@@ -93,7 +93,7 @@ struct then_helper<monostate, F> {
 	using futurator = futurize<std::invoke_result_t<F>>;
 	using type = typename futurator::type;
 
-	static type apply(F &f, std::optional<monostate> v) {
+	static type apply(F &f, monostate) {
 		return futurator::apply(f);
 	}
 };
@@ -139,7 +139,8 @@ public:
 			if (!fut1_poll) {
 				return std::nullopt;
 			}
-			auto res = helper::apply(before.func, fut1_poll);
+			auto res = helper::apply(before.func,
+						 std::move(*fut1_poll));
 			std::destroy_at(&before);
 			new (&after) output_future(std::move(res));
 			call_done = true;
