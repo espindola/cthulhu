@@ -28,6 +28,8 @@ class CTHULHU_NODISCARD result {
 	const bool has_value;
 
 public:
+	using value_type = T;
+	using error_type = E;
 	result(T &&value) : value(std::move(value)), has_value(true) {
 	}
 	result(const T &value) : value(value), has_value(true) {
