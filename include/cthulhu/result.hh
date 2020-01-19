@@ -51,8 +51,14 @@ public:
 			err.~E();
 		}
 	}
-	operator bool() {
+	bool is_ok() const {
 		return has_value;
+	}
+	bool is_err() const {
+		return !is_ok();
+	}
+	operator bool() const {
+		return is_ok();
 	}
 	T &operator*() {
 		assert(has_value);
