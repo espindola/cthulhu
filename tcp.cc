@@ -50,8 +50,9 @@ std::optional<posix_result<tcp_stream>> connect_future::poll(reactor &react) {
 		return std::move(res);
 	}
 
-	if (posix_error err = react.block_on_write(fd)) {
-		return posix_result<tcp_stream>(err);
+	posix_result_v r = react.block_on_write(fd);
+	if (r.is_err()) {
+		return r.error();
 	}
 
 	return std::nullopt;
@@ -73,15 +74,16 @@ write_future::write_future(file_descriptor &fd, void *buf, size_t count)
 
 static std::optional<posix_result<size_t>>
 io_poll(file_descriptor &fd, ssize_t r, reactor &react,
-	posix_error (reactor::*block_on)(file_descriptor &fd)) {
+	posix_result_v (reactor::*block_on)(file_descriptor &fd)) {
 	if (r != -1) {
 		return r;
 	}
 	if (errno != EAGAIN) {
 		return posix_error::current();
 	}
-	if (posix_error err = (react.*(block_on))(fd)) {
-		return err;
+	posix_result_v res = (react.*(block_on))(fd);
+	if (res.is_err()) {
+		return res.error();
 	}
 	return std::nullopt;
 }

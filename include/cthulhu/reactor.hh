@@ -19,7 +19,7 @@ class reactor {
 	int result;
 
 	reactor(int epoll_fd);
-	posix_error block_on(file_descriptor &fd, task **t, uint32_t events);
+	posix_result_v block_on(file_descriptor &fd, task **t, uint32_t events);
 	CTHULHU_EXPORT void run();
 
 public:
@@ -28,8 +28,8 @@ public:
 	CTHULHU_EXPORT static posix_result<reactor> create();
 	CTHULHU_EXPORT void spawn(transfer_ptr<task> tsk);
 
-	posix_error block_on_write(file_descriptor &fd);
-	posix_error block_on_read(file_descriptor &fd);
+	posix_result_v block_on_write(file_descriptor &fd);
+	posix_result_v block_on_read(file_descriptor &fd);
 
 	template <typename Fut>
 	void spawn(Fut &&fut) {

@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cthulhu/compiler.hh>
+#include <cthulhu/monostate.hh>
 
 #include <assert.h>
 #include <stdio.h>
@@ -15,8 +16,6 @@ class CTHULHU_NODISCARD posix_error {
 public:
 	posix_error(int error_number);
 	static posix_error current();
-	CTHULHU_EXPORT static posix_error ok();
-	CTHULHU_EXPORT operator bool();
 	CTHULHU_EXPORT void print_error(FILE *stream);
 };
 
@@ -76,4 +75,6 @@ public:
 
 template <typename T>
 using posix_result = result<T, posix_error>;
+
+using posix_result_v = posix_result<monostate>;
 }

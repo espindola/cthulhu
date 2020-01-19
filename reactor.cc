@@ -26,8 +26,8 @@ reactor::~reactor() {
 	(void)r;
 }
 
-posix_error reactor::block_on(file_descriptor &fd, task **tsk,
-			      uint32_t events) {
+posix_result_v reactor::block_on(file_descriptor &fd, task **tsk,
+				 uint32_t events) {
 	assert(current_task);
 	assert(*tsk == nullptr);
 	*tsk = current_task;
@@ -48,14 +48,14 @@ posix_error reactor::block_on(file_descriptor &fd, task **tsk,
 	if (r != 0) {
 		return posix_error::current();
 	}
-	return posix_error::ok();
+	return monostate{};
 }
 
-posix_error reactor::block_on_write(file_descriptor &fd) {
+posix_result_v reactor::block_on_write(file_descriptor &fd) {
 	return block_on(fd, &fd.blocked_on_write, EPOLLOUT);
 }
 
-posix_error reactor::block_on_read(file_descriptor &fd) {
+posix_result_v reactor::block_on_read(file_descriptor &fd) {
 	return block_on(fd, &fd.blocked_on_read, EPOLLIN);
 }
 

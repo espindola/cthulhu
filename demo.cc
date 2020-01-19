@@ -9,7 +9,7 @@
 
 using namespace cthulhu;
 
-using stop_error = stop_iteration<posix_error>;
+using stop_error = stop_iteration<posix_result_v>;
 
 static auto write_all(char *buf, tcp_stream &stream, size_t n) {
 	return loop([buf, &stream, n]() mutable {
@@ -22,15 +22,15 @@ static auto write_all(char *buf, tcp_stream &stream, size_t n) {
 				if (n != 0) {
 					return stop_error::no();
 				}
-				return stop_error::yes(posix_error::ok());
+				return stop_error::yes(monostate{});
 			});
 	});
 }
 
 static auto write_aux(char *buf, tcp_stream &stream, size_t n) {
-	return write_all(buf, stream, n).then([](posix_error e) {
-		if (e) {
-			return stop_error::yes(e);
+	return write_all(buf, stream, n).then([](posix_result_v r) {
+		if (r.is_err()) {
+			return stop_error::yes(r.error());
 		}
 		return stop_error::no();
 	});
@@ -47,8 +47,7 @@ static auto loop_iter(char *buf, tcp_stream &stream, size_t buf_size) {
 			}
 			size_t v = *res;
 			if (v == 0) {
-				return ret_type(
-					stop_error::yes(posix_error::ok()));
+				return ret_type(stop_error::yes(monostate{}));
 			}
 			return ret_type(write_aux(buf, stream, v));
 		});
@@ -67,9 +66,9 @@ static auto get_tcp_demo() {
 		.and_then([](tcp_stream stream) {
 			return echo_stream(std::move(stream));
 		})
-		.then([](posix_error e) {
-			if (e) {
-				e.print_error(stderr);
+		.then([](posix_result_v r) {
+			if (r.is_err()) {
+				r.error().print_error(stderr);
 				fprintf(stderr, "\n");
 				return 1;
 			}

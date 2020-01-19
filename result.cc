@@ -8,18 +8,11 @@
 using namespace cthulhu;
 
 posix_error::posix_error(int error_number) : error_number(error_number) {
+	assert(error_number && "not an error");
 }
 
 posix_error posix_error::current() {
 	return errno;
-}
-
-posix_error posix_error::ok() {
-	return 0;
-}
-
-posix_error::operator bool() {
-	return error_number;
 }
 
 void posix_error::print_error(FILE *stream) {
