@@ -42,4 +42,20 @@ public:
 		return futb.poll(react);
 	}
 };
+
+// Specialization for when both future types are the same
+template <typename Fut>
+class CTHULHU_NODISCARD either<Fut, Fut> : public future<either<Fut, Fut>> {
+	Fut fut;
+
+public:
+	using output = typename Fut::output;
+	either(Fut &&fut) : fut(std::move(fut)) {
+	}
+	either(either &&o) : fut(std::move(o.fut)) {
+	}
+	std::optional<output> poll(reactor &react) {
+		return fut.poll(react);
+	}
+};
 }
