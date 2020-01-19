@@ -1,6 +1,6 @@
 // Copyright (C) 2019 ScyllaDB
 
-#include <cthulhu/either.hh>
+#include <cthulhu/and_then.hh>
 #include <cthulhu/loop.hh>
 #include <cthulhu/reactor.hh>
 #include <cthulhu/tcp.hh>
@@ -64,16 +64,8 @@ static auto echo_stream(tcp_stream stream) {
 static auto get_tcp_demo() {
 	sockaddr_in addr = {AF_INET, htons(2222), {htonl(INADDR_LOOPBACK)}};
 	return tcp_stream::connect(addr)
-		.then([](posix_result<tcp_stream> stream) {
-			using A = decltype(echo_stream(std::move(*stream)));
-			using B = ready_future<posix_error>;
-			using ret_type = either<A, B>;
-			if (stream) {
-				return ret_type(
-					echo_stream(std::move(*stream)));
-			} else {
-				return ret_type(stream.error());
-			}
+		.and_then([](tcp_stream stream) {
+			return echo_stream(std::move(stream));
 		})
 		.then([](posix_error e) {
 			if (e) {
