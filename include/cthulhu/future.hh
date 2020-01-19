@@ -30,6 +30,9 @@ class future : future_base {
 public:
 	template <typename F>
 	then_future<Self, F> then(F &&f);
+
+	template <typename F>
+	auto and_then(F &&f);
 };
 
 template <typename T>
