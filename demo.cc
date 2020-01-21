@@ -11,46 +11,47 @@ using namespace cthulhu;
 
 using stop_error = stop_iteration<posix_result_v>;
 
+static stop_error to_stop_error(posix_result<stop_error> res) {
+	if (res.is_err()) {
+		return stop_error::yes(res.error());
+	}
+	return std::move(*res);
+}
+
 static auto write_all(char *buf, tcp_stream &stream, size_t n) {
 	return loop([buf, &stream, n]() mutable {
-		return stream.write(buf, n).then(
-			[&n](posix_result<size_t> res) {
-				if (!res) {
-					return stop_error::yes(res.error());
-				}
-				n -= *res;
+		return stream.write(buf, n)
+			.and_then([&n](size_t written) {
+				n -= written;
 				if (n != 0) {
-					return stop_error::no();
+					return posix_result<stop_error>(
+						stop_error::no());
 				}
-				return stop_error::yes(monostate{});
-			});
+				return posix_result<stop_error>(
+					stop_error::yes(monostate{}));
+			})
+			.then(to_stop_error);
 	});
 }
 
 static auto write_aux(char *buf, tcp_stream &stream, size_t n) {
-	return write_all(buf, stream, n).then([](posix_result_v r) {
-		if (r.is_err()) {
-			return stop_error::yes(r.error());
-		}
-		return stop_error::no();
+	return write_all(buf, stream, n).and_then([] {
+		return posix_result<stop_error>(stop_error::no());
 	});
 }
 
 static auto loop_iter(char *buf, tcp_stream &stream, size_t buf_size) {
 	return stream.read(buf, buf_size)
-		.then([&stream, buf](posix_result<size_t> res) {
-			using A = ready_future<stop_error>;
-			using B = decltype(write_aux(buf, stream, *res));
+		.and_then([&stream, buf](size_t n) {
+			using A = ready_future<posix_result<stop_error>>;
+			using B = decltype(write_aux(buf, stream, n));
 			using ret_type = either<A, B>;
-			if (!res) {
-				return ret_type(stop_error::yes(res.error()));
-			}
-			size_t v = *res;
-			if (v == 0) {
+			if (n == 0) {
 				return ret_type(stop_error::yes(monostate{}));
 			}
-			return ret_type(write_aux(buf, stream, v));
-		});
+			return ret_type(write_aux(buf, stream, n));
+		})
+		.then(to_stop_error);
 }
 
 static auto echo_stream(tcp_stream stream) {
