@@ -4,7 +4,6 @@ project('libcthulhu',
         default_options : ['cpp_std=c++17',
                            'cpp_eh=none',
                            'b_ndebug=if-release',
-                           'b_pie=true',
                            'cpp_rtti=false',
                            'b_staticpic=false'])
 incdir = include_directories('include')
