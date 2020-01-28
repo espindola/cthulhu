@@ -4,36 +4,23 @@
 #include <cthulhu/loop.hh>
 #include <cthulhu/reactor.hh>
 #include <cthulhu/tcp.hh>
+#include <cthulhu/while_ok.hh>
 
 #include <stdio.h>
 
 using namespace cthulhu;
 
-using stop_error = stop_iteration<posix_result_v>;
-
-static stop_error to_stop_error(posix_result<stop_iteration_v> res) {
-	if (res.is_err()) {
-		return stop_error::yes(res.error());
-	}
-	if (*res) {
-		return stop_error::yes(monostate{});
-	}
-	return stop_error::no();
-}
-
 static auto write_all(char *buf, tcp_stream &stream, size_t n) {
-	return loop([buf, &stream, n]() mutable {
-		return stream.write(buf, n)
-			.and_then([&n](size_t written) {
-				n -= written;
-				if (n != 0) {
-					return posix_result<stop_iteration_v>(
-						stop_iteration_v::no());
-				}
+	return while_ok([buf, &stream, n]() mutable {
+		return stream.write(buf, n).and_then([&n](size_t written) {
+			n -= written;
+			if (n != 0) {
 				return posix_result<stop_iteration_v>(
-					stop_iteration_v::yes());
-			})
-			.then(to_stop_error);
+					stop_iteration_v::no());
+			}
+			return posix_result<stop_iteration_v>(
+				stop_iteration_v::yes());
+		});
 	});
 }
 
@@ -44,22 +31,20 @@ static auto write_aux(char *buf, tcp_stream &stream, size_t n) {
 }
 
 static auto loop_iter(char *buf, tcp_stream &stream, size_t buf_size) {
-	return stream.read(buf, buf_size)
-		.and_then([&stream, buf](size_t n) {
-			using A = ready_future<posix_result<stop_iteration_v>>;
-			using B = decltype(write_aux(buf, stream, n));
-			using ret_type = either<A, B>;
-			if (n == 0) {
-				return ret_type(stop_iteration_v::yes());
-			}
-			return ret_type(write_aux(buf, stream, n));
-		})
-		.then(to_stop_error);
+	return stream.read(buf, buf_size).and_then([&stream, buf](size_t n) {
+		using A = ready_future<posix_result<stop_iteration_v>>;
+		using B = decltype(write_aux(buf, stream, n));
+		using ret_type = either<A, B>;
+		if (n == 0) {
+			return ret_type(stop_iteration_v::yes());
+		}
+		return ret_type(write_aux(buf, stream, n));
+	});
 }
 
 static auto echo_stream(tcp_stream stream) {
 	using buf_t = std::array<char, 1024>;
-	return loop([buf = buf_t(), stream = std::move(stream)]() mutable {
+	return while_ok([buf = buf_t(), stream = std::move(stream)]() mutable {
 		return loop_iter(buf.data(), stream, buf.size());
 	});
 }
