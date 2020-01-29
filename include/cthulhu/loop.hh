@@ -16,10 +16,18 @@ class stop_iteration {
 
 public:
 	using value_type = T;
-	template <typename U>
-	static stop_iteration yes(U &&val) {
+	template <typename U, typename X = T>
+	static std::enable_if_t<!std::is_same_v<X, monostate>, stop_iteration>
+	yes(U &&val) {
 		return stop_iteration(std::forward<U>(val));
 	}
+
+	template <typename X = T>
+	static std::enable_if_t<std::is_same_v<X, monostate>, stop_iteration>
+	yes() {
+		return stop_iteration(monostate{});
+	}
+
 	static stop_iteration no() {
 		return stop_iteration();
 	}
@@ -31,13 +39,7 @@ public:
 	}
 };
 
-class stop_iteration_v : public stop_iteration<monostate> {
-	stop_iteration_v(); // never implement
-public:
-	static stop_iteration<monostate> yes() {
-		return stop_iteration<monostate>::yes(monostate{});
-	}
-};
+using stop_iteration_v = stop_iteration<monostate>;
 
 template <typename F>
 class CTHULHU_NODISCARD loop : public future<loop<F>> {
