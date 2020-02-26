@@ -76,6 +76,12 @@ public:
 };
 
 template <typename T>
+struct is_result : std::false_type {};
+
+template <typename T, typename E>
+struct is_result<result<T, E>> : std::true_type {};
+
+template <typename T>
 using posix_result = result<T, posix_error>;
 
 using posix_result_v = posix_result<monostate>;
