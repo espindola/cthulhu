@@ -24,21 +24,16 @@ static auto write_all(char *buf, tcp_stream &stream, size_t n) {
 	});
 }
 
-static auto write_aux(char *buf, tcp_stream &stream, size_t n) {
-	return write_all(buf, stream, n).and_then([] {
-		return posix_result<stop_iteration_v>(stop_iteration_v::no());
-	});
-}
-
 static auto loop_iter(char *buf, tcp_stream &stream, size_t buf_size) {
 	return stream.read(buf, buf_size).and_then([&stream, buf](size_t n) {
-		using A = ready_future<posix_result<stop_iteration_v>>;
-		using B = decltype(write_aux(buf, stream, n));
-		using ret_type = either<A, B>;
-		if (n == 0) {
-			return ret_type(stop_iteration_v::yes());
-		}
-		return ret_type(write_aux(buf, stream, n));
+		return write_all(buf, stream, n).and_then([n] {
+			if (n == 0) {
+				return posix_result<stop_iteration_v>(
+					stop_iteration_v::yes());
+			}
+			return posix_result<stop_iteration_v>(
+				stop_iteration_v::no());
+		});
 	});
 }
 
