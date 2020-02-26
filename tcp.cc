@@ -43,6 +43,7 @@ std::optional<posix_result<tcp_stream>> connect_future::poll(reactor &react) {
 		socklen_t optlen = sizeof(optval);
 		int r = getsockopt(fd.fd, SOL_SOCKET, SO_ERROR, &optval,
 				   &optlen);
+		(void)r;
 		assert(r == 0);
 		if (optval != 0) {
 			return posix_result<tcp_stream>(posix_error(optval));

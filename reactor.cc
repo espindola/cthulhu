@@ -71,6 +71,7 @@ void reactor::run() {
 		}
 		struct epoll_event event;
 		int num_fds = epoll_wait(epoll_fd, &event, 1, -1);
+		(void)num_fds;
 		assert(num_fds == 1);
 		auto fd = reinterpret_cast<file_descriptor *>(event.data.ptr);
 		--num_blocked;
