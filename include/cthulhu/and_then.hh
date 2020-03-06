@@ -7,11 +7,6 @@
 
 namespace cthulhu {
 
-template <typename T, typename E>
-result<T, E> to_result(T &&v) {
-	return result<T, E>(std::move(v));
-};
-
 template <typename T, bool is_rst = is_result<T>::value>
 struct value_type_if_result;
 
@@ -24,61 +19,117 @@ struct value_type_if_result<T, true> {
 	using type = typename T::value_type;
 };
 
-namespace internal {
-template <typename T, typename E, typename F>
-auto and_then_impl(result<T, E> &&v, F &f) {
-	using helper = internal::then_helper<T, F>;
-	using func_output = typename helper::func_output;
-
-	if constexpr (IsFuture<func_output>) {
-		using f_out = typename func_output::output;
-		using T2 = typename value_type_if_result<f_out>::type;
-		using R = result<T2, E>;
-		using B = ready_future<R>;
-		if constexpr (is_result<f_out>::value) {
-			using ret_type = either<func_output, B>;
-			if (v) {
-				return ret_type(
-					helper::invoke(f, std::move(*v)));
-			}
-			return ret_type(B(std::move(v.error())));
-		} else {
-			using A = then_future<func_output,
-					      decltype(*to_result<T2, E>)>;
-			using ret_type = either<A, B>;
-			if (v) {
-				auto fut = helper::invoke(f, std::move(*v));
-				auto res_fut = fut.then(to_result<T2, E>);
-				return ret_type(std::move(res_fut));
-			}
-			return ret_type(B(std::move(v.error())));
-		}
-	} else {
-		using T2 = typename value_type_if_result<func_output>::type;
-		using R = result<T2, E>;
-		if (!v) {
-			return R(std::move(v.error()));
-		}
-		if constexpr (is_result<func_output>::value) {
-			return helper::invoke(f, std::move(*v));
-		} else {
-			auto val = helper::invoke(f, std::move(*v));
-			return R(std::move(val));
-		}
-	}
-}
-}
-
-template <typename Self>
-template <typename F>
-auto future<Self>::and_then(F &&f) {
-	using s_output = typename Self::output;
+template <typename Fut, typename F>
+class and_then_future<Fut, F, true>
+	: public future<and_then_future<Fut, F, true>> {
+	using s_output = typename Fut::output;
 	static_assert(is_result<s_output>::value);
 	using T = typename s_output::value_type;
 	using E = typename s_output::error_type;
+	using helper = internal::then_helper<T, F>;
+	using func_output = typename helper::func_output;
+	using output_future = func_output;
+	using f_out = typename func_output::output;
+	static constexpr bool f_out_is_result = is_result<f_out>::value;
+	using T2 = typename value_type_if_result<f_out>::type;
 
-	return then([f = std::move(f)](s_output &&v) mutable {
-		return internal::and_then_impl<T, E>(std::move(v), f);
-	});
+	struct before_t {
+		Fut fut;
+		F func;
+	};
+	union {
+		before_t before;
+		output_future after;
+	};
+	bool call_done = false;
+
+public:
+	using output = result<T2, E>;
+
+	and_then_future(Fut &&fut, F &&f)
+		: before{std::move(fut), std::move(f)} {
+	}
+	and_then_future(and_then_future &&o) : call_done(o.call_done) {
+		if (call_done) {
+			new (&after) output_future(std::move(o.after));
+		} else {
+			new (&before) before_t(std::move(o.before));
+		}
+	}
+	~and_then_future() {
+		if (call_done) {
+			std::destroy_at(&after);
+		} else {
+			std::destroy_at(&before);
+		}
+	}
+
+	std::optional<output> poll(reactor &react) {
+		if (!call_done) {
+			std::optional<s_output> fut1_poll =
+				before.fut.poll(react);
+			if (!fut1_poll) {
+				return std::nullopt;
+			}
+			s_output &v = *fut1_poll;
+			if (v.is_err()) {
+				return std::move(v.error());
+			}
+			T &v2 = *v;
+			auto res = helper::invoke(before.func, std::move(v2));
+			std::destroy_at(&before);
+			new (&after) output_future(std::move(res));
+			call_done = true;
+		}
+		return after.poll(react);
+	}
+};
+
+template <typename Fut, typename F>
+class and_then_future<Fut, F, false>
+	: public future<and_then_future<Fut, F, false>> {
+	using s_output = typename Fut::output;
+	static_assert(is_result<s_output>::value);
+	using T = typename s_output::value_type;
+	using E = typename s_output::error_type;
+	using helper = internal::then_helper<T, F>;
+	using func_output = typename helper::func_output;
+	using f_out = func_output;
+	static constexpr bool f_out_is_result = is_result<f_out>::value;
+	using T2 = typename value_type_if_result<f_out>::type;
+
+	Fut fut;
+	F func;
+
+public:
+	using output = result<T2, E>;
+
+	and_then_future(Fut &&fut, F &&f)
+		: fut(std::move(fut)), func(std::move(f)) {
+	}
+
+	std::optional<output> poll(reactor &react) {
+		std::optional<s_output> fut1_poll = fut.poll(react);
+		if (!fut1_poll) {
+			return std::nullopt;
+		}
+		s_output &v = *fut1_poll;
+		if (v.is_err()) {
+			return std::move(v.error());
+		}
+		return helper::invoke(func, std::move(*v));
+	}
+};
+
+template <typename T, typename E>
+result<T, E> to_result(T &&v) {
+	return result<T, E>(std::move(v));
+};
+
+template <typename Self>
+template <typename F>
+and_then_future<Self, F> future<Self>::and_then(F &&f) {
+	return and_then_future<Self, F>(std::move(*derived()),
+					std::forward<F>(f));
 }
 }

@@ -29,11 +29,19 @@ struct then_helper;
 template <typename Fut, typename F>
 constexpr bool FuncReturnsFuture =
 	IsFuture<typename then_helper<typename Fut::output, F>::func_output>;
+
+template <typename Fut, typename F>
+constexpr bool FuncReturnsFuture2 = IsFuture<
+	typename then_helper<typename Fut::output::value_type, F>::func_output>;
 }
 
 template <typename Fut, typename F,
 	  bool F_returns_future = internal::FuncReturnsFuture<Fut, F>>
 class CTHULHU_NODISCARD then_future;
+
+template <typename Fut, typename F,
+	  bool F_returns_future = internal::FuncReturnsFuture2<Fut, F>>
+class CTHULHU_NODISCARD and_then_future;
 
 template <typename Self>
 class future : future_base {
@@ -46,7 +54,7 @@ public:
 	then_future<Self, F> then(F &&f);
 
 	template <typename F>
-	auto and_then(F &&f);
+	and_then_future<Self, F> and_then(F &&f);
 };
 
 template <typename T>
