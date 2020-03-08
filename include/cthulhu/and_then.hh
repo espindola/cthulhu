@@ -12,6 +12,17 @@ result<T, E> to_result(T &&v) {
 	return result<T, E>(std::move(v));
 };
 
+template <bool is_result, typename T>
+struct value_type_if_result;
+template <typename T>
+struct value_type_if_result<false, T> {
+	using type = T;
+};
+template <typename T>
+struct value_type_if_result<true, T> {
+	using type = typename T::value_type;
+};
+
 template <typename Self>
 template <typename F>
 auto future<Self>::and_then(F &&f) {
@@ -24,14 +35,13 @@ auto future<Self>::and_then(F &&f) {
 	using f_fut = typename helper::type;
 	using f_out = typename f_fut::output;
 
-	constexpr bool f_ret_is_result = is_result<f_out>::value;
-	using T2 = std::conditional_t<f_ret_is_result,
-				      typename f_out::value_type, f_out>;
+	constexpr bool f_out_is_result = is_result<f_out>::value;
+	using T2 = typename value_type_if_result<f_out_is_result, f_out>::type;
 	using R = result<T2, E>;
 	using B = ready_future<R>;
 
 	return then([f = std::move(f)](s_output v) mutable {
-		if constexpr (f_ret_is_result) {
+		if constexpr (f_out_is_result) {
 			using ret_type = either<f_fut, B>;
 			if (v) {
 				auto fut = helper::apply(f, std::move(*v));
