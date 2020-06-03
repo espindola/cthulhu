@@ -3,6 +3,7 @@
 #include <cthulhu/reactor.hh>
 #include <cthulhu/tcp.hh>
 
+#include <errno.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
