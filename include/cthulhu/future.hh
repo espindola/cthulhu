@@ -11,15 +11,28 @@
 namespace cthulhu {
 class reactor;
 
-template <typename Fut, typename F>
-class then_future;
-
 class future_base {
 public:
 	future_base(const future_base &) = delete;
 	future_base(future_base &&) = default;
 	future_base() = default;
 };
+
+template <typename T>
+constexpr bool IsFuture = std::is_base_of_v<future_base, T>;
+
+namespace internal {
+template <typename T, typename F>
+struct then_helper;
+
+template <typename Fut, typename F>
+constexpr bool FuncReturnsFuture =
+	IsFuture<typename then_helper<typename Fut::output, F>::func_output>;
+}
+
+template <typename Fut, typename F,
+	  bool F_returns_future = internal::FuncReturnsFuture<Fut, F>>
+class CTHULHU_NODISCARD then_future;
 
 template <typename Self>
 class future : future_base {
@@ -58,8 +71,7 @@ public:
 
 template <typename T>
 struct futurize {
-	static constexpr bool IsFuture = std::is_base_of_v<future_base, T>;
-	using type = std::conditional_t<IsFuture, T, ready_future<T>>;
+	using type = std::conditional_t<IsFuture<T>, T, ready_future<T>>;
 	template <typename F, typename... Args>
 	static type apply(F &f, Args &&... args) {
 		return f(std::forward<Args>(args)...);
@@ -79,48 +91,69 @@ struct futurize<void> {
 namespace internal {
 template <typename T, typename F>
 struct then_helper {
-	using futurator = futurize<std::invoke_result_t<F, T>>;
+	using func_output = std::invoke_result_t<F, T>;
+	using futurator = futurize<func_output>;
 	using type = typename futurator::type;
 
 	template <typename A>
 	static type apply(F &f, A &&v) {
 		return futurator::apply(f, std::forward<A>(v));
 	}
+
+	template <typename A>
+	static auto invoke(F &f, A &&v) {
+		if constexpr (std::is_void_v<func_output>) {
+			f(std::forward<A>(v));
+			return monostate{};
+		} else {
+			return f(std::forward<A>(v));
+		}
+	}
 };
 
 template <typename F>
 struct then_helper<monostate, F> {
-	using futurator = futurize<std::invoke_result_t<F>>;
+	using func_output = std::invoke_result_t<F>;
+	using futurator = futurize<func_output>;
 	using type = typename futurator::type;
 
 	static type apply(F &f, monostate) {
 		return futurator::apply(f);
 	}
+
+	static auto invoke(F &f, monostate) {
+		if constexpr (std::is_void_v<func_output>) {
+			f();
+			return monostate{};
+		} else {
+			return f();
+		}
+	}
 };
 }
 
 template <typename Fut, typename F>
-class CTHULHU_NODISCARD then_future : public future<then_future<Fut, F>> {
+class then_future<Fut, F, true> : public future<then_future<Fut, F, true>> {
 	using helper = internal::then_helper<typename Fut::output, F>;
-	using output_future = typename helper::type;
+	using func_output = typename helper::func_output;
 	struct before_t {
 		Fut fut;
 		F func;
 	};
 	union {
 		before_t before;
-		output_future after;
+		func_output after;
 	};
 	bool call_done = false;
 
 public:
-	using output = typename output_future::output;
+	using output = typename func_output::output;
 
 	then_future(Fut fut, F f) : before{std::move(fut), std::move(f)} {
 	}
 	then_future(then_future &&o) : call_done(o.call_done) {
 		if (call_done) {
-			new (&after) output_future(std::move(o.after));
+			new (&after) func_output(std::move(o.after));
 		} else {
 			new (&before) before_t(std::move(o.before));
 		}
@@ -139,13 +172,37 @@ public:
 			if (!fut1_poll) {
 				return std::nullopt;
 			}
-			auto res = helper::apply(before.func,
-						 std::move(*fut1_poll));
+			auto res = helper::invoke(before.func,
+						  std::move(*fut1_poll));
 			std::destroy_at(&before);
-			new (&after) output_future(std::move(res));
+			new (&after) func_output(std::move(res));
 			call_done = true;
 		}
 		return after.poll(react);
+	}
+};
+
+template <typename Fut, typename F>
+class then_future<Fut, F, false> : public future<then_future<Fut, F, false>> {
+	using helper = internal::then_helper<typename Fut::output, F>;
+	using output_future = typename helper::type;
+
+	Fut fut;
+	F func;
+
+public:
+	using output = typename output_future::output;
+
+	then_future(Fut fut, F f) : fut(std::move(fut)), func(std::move(f)) {
+	}
+
+	std::optional<output> poll(reactor &react) {
+		auto fut1_poll = fut.poll(react);
+		if (!fut1_poll) {
+			return std::nullopt;
+		}
+		auto res = helper::invoke(func, std::move(*fut1_poll));
+		return std::optional<output>(std::move(res));
 	}
 };
 
