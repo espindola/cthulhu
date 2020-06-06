@@ -40,7 +40,7 @@ auto future<Self>::and_then(F &&f) {
 	using R = result<T2, E>;
 	using B = ready_future<R>;
 
-	return then([f = std::move(f)](s_output&& v) mutable {
+	return then([f = std::move(f)](s_output &&v) mutable {
 		if constexpr (f_out_is_result) {
 			using ret_type = either<f_fut, B>;
 			if (v) {
