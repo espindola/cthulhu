@@ -41,23 +41,39 @@ auto future<Self>::and_then(F &&f) {
 	using B = ready_future<R>;
 
 	return then([f = std::move(f)](s_output &&v) mutable {
-		if constexpr (f_out_is_result) {
-			using ret_type = either<f_fut, B>;
-			if (v) {
-				auto fut = helper::apply(f, std::move(*v));
-				return ret_type(std::move(fut));
+		using func_output = typename helper::func_output;
+		if constexpr (IsFuture<func_output>) {
+			if constexpr (f_out_is_result) {
+				using ret_type = either<f_fut, B>;
+				if (v) {
+					auto fut =
+						helper::invoke(f, std::move(*v));
+					return ret_type(std::move(fut));
+				}
+				return ret_type(B(v.error()));
+			} else {
+				using A = then_future<
+					f_fut, decltype(*to_result<T2, E>)>;
+				using ret_type = either<A, B>;
+				if (v) {
+					auto fut =
+						helper::invoke(f, std::move(*v));
+					auto res_fut =
+						fut.then(to_result<T2, E>);
+					return ret_type(std::move(res_fut));
+				}
+				return ret_type(B(v.error()));
 			}
-			return ret_type(B(v.error()));
 		} else {
-			using A =
-				then_future<f_fut, decltype(*to_result<T2, E>)>;
-			using ret_type = either<A, B>;
-			if (v) {
-				auto fut = helper::apply(f, std::move(*v));
-				auto res_fut = fut.then(to_result<T2, E>);
-				return ret_type(std::move(res_fut));
+			if (!v) {
+				return R(v.error());
 			}
-			return ret_type(B(v.error()));
+			if constexpr (f_out_is_result) {
+				return helper::invoke(f, std::move(*v));
+			} else {
+				auto val = helper::invoke(f, std::move(*v));
+				return R(std::move(val));
+			}
 		}
 	});
 }

@@ -72,33 +72,18 @@ public:
 template <typename T>
 struct futurize {
 	using type = std::conditional_t<IsFuture<T>, T, ready_future<T>>;
-	template <typename F, typename... Args>
-	static type apply(F &f, Args &&... args) {
-		return f(std::forward<Args>(args)...);
-	}
 };
 
 template <>
 struct futurize<void> {
 	using type = ready_future_v;
-	template <typename F, typename... Args>
-	static type apply(F &f, Args &&... args) {
-		f(std::forward<Args>(args)...);
-		return ready_future_v();
-	}
 };
 
 namespace internal {
 template <typename T, typename F>
 struct then_helper {
 	using func_output = std::invoke_result_t<F, T>;
-	using futurator = futurize<func_output>;
-	using type = typename futurator::type;
-
-	template <typename A>
-	static type apply(F &f, A &&v) {
-		return futurator::apply(f, std::forward<A>(v));
-	}
+	using type = typename futurize<func_output>::type;
 
 	template <typename A>
 	static auto invoke(F &f, A &&v) {
@@ -114,12 +99,7 @@ struct then_helper {
 template <typename F>
 struct then_helper<monostate, F> {
 	using func_output = std::invoke_result_t<F>;
-	using futurator = futurize<func_output>;
-	using type = typename futurator::type;
-
-	static type apply(F &f, monostate) {
-		return futurator::apply(f);
-	}
+	using type = typename futurize<func_output>::type;
 
 	static auto invoke(F &f, monostate) {
 		if constexpr (std::is_void_v<func_output>) {
