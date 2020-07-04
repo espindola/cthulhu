@@ -70,20 +70,12 @@ public:
 };
 
 template <typename T>
-struct futurize {
-	using type = std::conditional_t<IsFuture<T>, T, ready_future<T>>;
-};
-
-template <>
-struct futurize<void> {
-	using type = ready_future_v;
-};
+using devoid = std::conditional_t<std::is_void_v<T>, monostate, T>;
 
 namespace internal {
 template <typename T, typename F>
 struct then_helper {
 	using func_output = std::invoke_result_t<F, T>;
-	using type = typename futurize<func_output>::type;
 
 	template <typename A>
 	static auto invoke(F &f, A &&v) {
@@ -99,7 +91,6 @@ struct then_helper {
 template <typename F>
 struct then_helper<monostate, F> {
 	using func_output = std::invoke_result_t<F>;
-	using type = typename futurize<func_output>::type;
 
 	static auto invoke(F &f, monostate) {
 		if constexpr (std::is_void_v<func_output>) {
@@ -165,13 +156,12 @@ public:
 template <typename Fut, typename F>
 class then_future<Fut, F, false> : public future<then_future<Fut, F, false>> {
 	using helper = internal::then_helper<typename Fut::output, F>;
-	using output_future = typename helper::type;
 
 	Fut fut;
 	F func;
 
 public:
-	using output = typename output_future::output;
+	using output = devoid<typename helper::func_output>;
 
 	then_future(Fut fut, F f) : fut(std::move(fut)), func(std::move(f)) {
 	}
