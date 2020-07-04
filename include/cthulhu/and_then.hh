@@ -46,8 +46,8 @@ auto future<Self>::and_then(F &&f) {
 			if constexpr (f_out_is_result) {
 				using ret_type = either<f_fut, B>;
 				if (v) {
-					auto fut =
-						helper::invoke(f, std::move(*v));
+					auto fut = helper::invoke(
+						f, std::move(*v));
 					return ret_type(std::move(fut));
 				}
 				return ret_type(B(v.error()));
@@ -56,8 +56,8 @@ auto future<Self>::and_then(F &&f) {
 					f_fut, decltype(*to_result<T2, E>)>;
 				using ret_type = either<A, B>;
 				if (v) {
-					auto fut =
-						helper::invoke(f, std::move(*v));
+					auto fut = helper::invoke(
+						f, std::move(*v));
 					auto res_fut =
 						fut.then(to_result<T2, E>);
 					return ret_type(std::move(res_fut));
