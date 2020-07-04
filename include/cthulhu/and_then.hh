@@ -12,14 +12,15 @@ result<T, E> to_result(T &&v) {
 	return result<T, E>(std::move(v));
 };
 
-template <bool is_result, typename T>
+template <typename T, bool is_rst = is_result<T>::value>
 struct value_type_if_result;
+
 template <typename T>
-struct value_type_if_result<false, T> {
+struct value_type_if_result<T, false> {
 	using type = T;
 };
 template <typename T>
-struct value_type_if_result<true, T> {
+struct value_type_if_result<T, true> {
 	using type = typename T::value_type;
 };
 
@@ -36,7 +37,7 @@ auto future<Self>::and_then(F &&f) {
 	using f_out = typename f_fut::output;
 
 	constexpr bool f_out_is_result = is_result<f_out>::value;
-	using T2 = typename value_type_if_result<f_out_is_result, f_out>::type;
+	using T2 = typename value_type_if_result<f_out>::type;
 	using R = result<T2, E>;
 	using B = ready_future<R>;
 
