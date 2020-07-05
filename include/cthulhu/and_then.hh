@@ -24,14 +24,9 @@ struct value_type_if_result<T, true> {
 	using type = typename T::value_type;
 };
 
-template <typename Self>
-template <typename F>
-auto future<Self>::and_then(F &&f) {
-	using s_output = typename Self::output;
-	static_assert(is_result<s_output>::value);
-	using T = typename s_output::value_type;
-	using E = typename s_output::error_type;
-
+namespace internal {
+template <typename T, typename E, typename F>
+auto and_then_impl(result<T, E> &&v, F &f) {
 	using helper = internal::then_helper<T, F>;
 	using f_fut = typename helper::type;
 	using f_out = typename f_fut::output;
@@ -41,41 +36,50 @@ auto future<Self>::and_then(F &&f) {
 	using R = result<T2, E>;
 	using B = ready_future<R>;
 
-	return then([f = std::move(f)](s_output &&v) mutable {
-		using func_output = typename helper::func_output;
-		if constexpr (IsFuture<func_output>) {
-			if constexpr (f_out_is_result) {
-				using ret_type = either<f_fut, B>;
-				if (v) {
-					auto fut = helper::invoke(
-						f, std::move(*v));
-					return ret_type(std::move(fut));
-				}
-				return ret_type(B(v.error()));
-			} else {
-				using A = then_future<
-					f_fut, decltype(*to_result<T2, E>)>;
-				using ret_type = either<A, B>;
-				if (v) {
-					auto fut = helper::invoke(
-						f, std::move(*v));
-					auto res_fut =
-						fut.then(to_result<T2, E>);
-					return ret_type(std::move(res_fut));
-				}
-				return ret_type(B(v.error()));
+	using func_output = typename helper::func_output;
+	if constexpr (IsFuture<func_output>) {
+		if constexpr (f_out_is_result) {
+			using ret_type = either<f_fut, B>;
+			if (v) {
+				auto fut = helper::invoke(f, std::move(*v));
+				return ret_type(std::move(fut));
 			}
+			return ret_type(B(v.error()));
 		} else {
-			if (!v) {
-				return R(v.error());
+			using A =
+				then_future<f_fut, decltype(*to_result<T2, E>)>;
+			using ret_type = either<A, B>;
+			if (v) {
+				auto fut = helper::invoke(f, std::move(*v));
+				auto res_fut = fut.then(to_result<T2, E>);
+				return ret_type(std::move(res_fut));
 			}
-			if constexpr (f_out_is_result) {
-				return helper::invoke(f, std::move(*v));
-			} else {
-				auto val = helper::invoke(f, std::move(*v));
-				return R(std::move(val));
-			}
+			return ret_type(B(v.error()));
 		}
+	} else {
+		if (!v) {
+			return R(v.error());
+		}
+		if constexpr (f_out_is_result) {
+			return helper::invoke(f, std::move(*v));
+		} else {
+			auto val = helper::invoke(f, std::move(*v));
+			return R(std::move(val));
+		}
+	}
+}
+}
+
+template <typename Self>
+template <typename F>
+auto future<Self>::and_then(F &&f) {
+	using s_output = typename Self::output;
+	static_assert(is_result<s_output>::value);
+	using T = typename s_output::value_type;
+	using E = typename s_output::error_type;
+
+	return then([f = std::move(f)](s_output &&v) mutable {
+		return internal::and_then_impl<T, E, F>(std::move(v), f);
 	});
 }
 }
