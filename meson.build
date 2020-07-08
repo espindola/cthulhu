@@ -19,3 +19,5 @@ lib = library('cthulhu',
 dep = declare_dependency(link_with : lib, include_directories : incdir)
 
 executable('demo', 'demo.cc', dependencies: dep,  gnu_symbol_visibility: 'hidden')
+
+subdir('tests')
