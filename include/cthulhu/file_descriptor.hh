@@ -18,7 +18,7 @@ struct file_descriptor {
 	// blocked_on_read || blocked_on_write.
 	bool in_epoll;
 
-	file_descriptor(int fd);
+	CTHULHU_EXPORT file_descriptor(int fd);
 	file_descriptor(const file_descriptor &) = delete;
 	CTHULHU_EXPORT file_descriptor(file_descriptor &&o);
 

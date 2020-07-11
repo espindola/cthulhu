@@ -28,8 +28,8 @@ public:
 	CTHULHU_EXPORT static posix_result<reactor> create();
 	CTHULHU_EXPORT void spawn(transfer_ptr<task> tsk);
 
-	posix_result_v block_on_write(file_descriptor &fd);
-	posix_result_v block_on_read(file_descriptor &fd);
+	CTHULHU_EXPORT posix_result_v block_on_write(file_descriptor &fd);
+	CTHULHU_EXPORT posix_result_v block_on_read(file_descriptor &fd);
 
 	template <typename Fut>
 	void spawn(Fut &&fut) {
