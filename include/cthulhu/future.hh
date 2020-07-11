@@ -5,6 +5,7 @@
 #include <cthulhu/compiler.hh>
 #include <cthulhu/monostate.hh>
 
+#include <assert.h>
 #include <memory>
 #include <optional>
 
@@ -122,12 +123,11 @@ public:
 
 	then_future(Fut fut, F f) : before{std::move(fut), std::move(f)} {
 	}
-	then_future(then_future &&o) : call_done(o.call_done) {
-		if (call_done) {
-			new (&after) func_output(std::move(o.after));
-		} else {
-			new (&before) before_t(std::move(o.before));
-		}
+	then_future(then_future &&o) : call_done(false) {
+		// call_done becomes true on the first call to poll. After that,
+		// it is not legal to move a future.
+		assert(!o.call_done);
+		new (&before) before_t(std::move(o.before));
 	}
 	~then_future() {
 		if (call_done) {
