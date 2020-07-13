@@ -1,5 +1,6 @@
 // Copyright (C) 2020 ScyllaDB
 
+#include <cthulhu/and_then.hh>
 #include <cthulhu/file_descriptor.hh>
 #include <cthulhu/future.hh>
 #include <cthulhu/reactor.hh>
@@ -62,8 +63,88 @@ static auto test_not_ready() {
 	});
 }
 
+static auto test_and_then_1() {
+	return ready_future<result<int, double>>(int(1))
+		.and_then([](int x) {
+			return x;
+		})
+		.then([](result<int, double> x) {
+			return *x;
+		});
+}
+
+static auto test_and_then_2() {
+	return ready_future<result<int, double>>(int(1))
+		.and_then([](int x) {
+			return result<int, double>(x + 1);
+		})
+		.then([](result<int, double> x) {
+			return *x;
+		});
+}
+
+static auto test_and_then_3() {
+	return ready_future<result<int, double>>(double(2))
+		.and_then([](int x) {
+			return x + 1;
+		})
+		.then([](result<int, double> x) {
+			assert(x.is_err());
+			return 3;
+		});
+}
+
+static auto test_and_then_4() {
+	return ready_future<result<int, double>>(int(2))
+		.and_then([](int x) {
+			return ready_future<int>(x + 2);
+		})
+		.then([](result<int, double> x) {
+			return *x;
+		});
+}
+
+static auto test_and_then_5() {
+	return ready_future<result<int, double>>(int(2))
+		.and_then([](int x) {
+			return ready_future<result<int, double>>(x + 3);
+		})
+		.then([](result<int, double> x) {
+			return *x;
+		});
+}
+
+static auto test_and_then_6() {
+	return ready_future<result<int, double>>(double(2))
+		.and_then([](int x) {
+			return ready_future<int>(x);
+		})
+		.then([](result<int, double> x) {
+			assert(x.is_err());
+			return 6;
+		});
+}
+
+static auto test_and_then_7() {
+	return ready_future<result<int, double>>(double(2))
+		.and_then([](int x) {
+			return ready_future<result<int, double>>(x);
+		})
+		.then([](result<int, double> x) {
+			assert(x.is_err());
+			return 7;
+		});
+}
+
 int main(int argc, const char *argv[]) {
 	run_test(test_ready, 1);
 	run_test(test_not_ready, 2);
+	run_test(test_and_then_1, 1);
+	run_test(test_and_then_2, 2);
+	run_test(test_and_then_3, 3);
+	run_test(test_and_then_4, 4);
+	run_test(test_and_then_5, 5);
+	run_test(test_and_then_6, 6);
+	run_test(test_and_then_7, 7);
 	return 0;
 }
