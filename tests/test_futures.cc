@@ -63,74 +63,91 @@ static auto test_not_ready() {
 	});
 }
 
+namespace {
+struct foo {
+	int v;
+	explicit foo(int v) : v(v) {
+	}
+	foo(foo &&) = default;
+	foo(const foo &) = delete;
+};
+struct bar {
+	int v;
+	explicit bar(int v) : v(v) {
+	}
+	bar(bar &&) = default;
+	bar(const bar &) = delete;
+};
+}
+
 static auto test_and_then_1() {
-	return ready_future<result<int, double>>(int(1))
-		.and_then([](int x) {
+	return ready_future<result<foo, bar>>(foo(1))
+		.and_then([](foo x) {
 			return x;
 		})
-		.then([](result<int, double> x) {
-			return *x;
+		.then([](result<foo, bar> x) {
+			return x->v;
 		});
 }
 
 static auto test_and_then_2() {
-	return ready_future<result<int, double>>(int(1))
-		.and_then([](int x) {
-			return result<int, double>(x + 1);
+	return ready_future<result<foo, bar>>(foo(1))
+		.and_then([](foo x) {
+			return result<foo, bar>(foo(x.v + 1));
 		})
-		.then([](result<int, double> x) {
-			return *x;
+		.then([](result<foo, bar> x) {
+			return x->v;
 		});
 }
 
 static auto test_and_then_3() {
-	return ready_future<result<int, double>>(double(2))
-		.and_then([](int x) {
-			return x + 1;
+	return ready_future<result<foo, bar>>(bar(2))
+		.and_then([](foo x) {
+			return foo(x.v + 1);
 		})
-		.then([](result<int, double> x) {
+		.then([](result<foo, bar> x) {
 			assert(x.is_err());
 			return 3;
 		});
 }
 
 static auto test_and_then_4() {
-	return ready_future<result<int, double>>(int(2))
-		.and_then([](int x) {
-			return ready_future<int>(x + 2);
+	return ready_future<result<foo, bar>>(foo(2))
+		.and_then([](foo x) {
+			return ready_future<foo>(x.v + 2);
 		})
-		.then([](result<int, double> x) {
-			return *x;
+		.then([](result<foo, bar> x) {
+			return x->v;
 		});
 }
 
 static auto test_and_then_5() {
-	return ready_future<result<int, double>>(int(2))
-		.and_then([](int x) {
-			return ready_future<result<int, double>>(x + 3);
+	return ready_future<result<foo, bar>>(foo(2))
+		.and_then([](foo x) {
+			return ready_future<result<foo, bar>>(foo(x.v + 3));
 		})
-		.then([](result<int, double> x) {
-			return *x;
+		.then([](result<foo, bar> x) {
+			return x->v;
 		});
 }
 
 static auto test_and_then_6() {
-	return ready_future<result<int, double>>(double(2))
-		.and_then([](int x) {
-			return ready_future<int>(x);
+	return ready_future<result<foo, bar>>(bar(2))
+		.and_then([](foo x) {
+			return ready_future<foo>(std::move(x));
 		})
-		.then([](result<int, double> x) {
+		.then([](result<foo, bar> x) {
 			assert(x.is_err());
 			return 6;
 		});
 }
 
 static auto test_and_then_7() {
-	return ready_future<result<int, double>>(double(2))
-		.and_then([](int x) {
-			return ready_future<result<int, double>>(x);
+	return ready_future<result<foo, bar>>(bar(2))
+		.and_then([](foo x) {
+			return ready_future<result<foo, bar>>(std::move(x));
 		})
-		.then([](result<int, double> x) {
+		.then([](result<foo, bar> x) {
 			assert(x.is_err());
 			return 7;
 		});

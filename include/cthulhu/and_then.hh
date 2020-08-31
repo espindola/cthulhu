@@ -41,7 +41,7 @@ auto and_then_impl(result<T, E> &&v, F &f) {
 				auto fut = helper::invoke(f, std::move(*v));
 				return ret_type(std::move(fut));
 			}
-			return ret_type(B(v.error()));
+			return ret_type(B(std::move(v.error())));
 		} else {
 			using A = then_future<func_output,
 					      decltype(*to_result<T2, E>)>;
@@ -51,13 +51,13 @@ auto and_then_impl(result<T, E> &&v, F &f) {
 				auto res_fut = fut.then(to_result<T2, E>);
 				return ret_type(std::move(res_fut));
 			}
-			return ret_type(B(v.error()));
+			return ret_type(B(std::move(v.error())));
 		}
 	} else {
 		using T2 = typename value_type_if_result<func_output>::type;
 		using R = result<T2, E>;
 		if (!v) {
-			return R(v.error());
+			return R(std::move(v.error()));
 		}
 		if constexpr (is_result<func_output>::value) {
 			return helper::invoke(f, std::move(*v));
