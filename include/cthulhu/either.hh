@@ -45,5 +45,6 @@ public:
 
 // Specialization for when both future types are the same
 template <typename FutA, typename FutB>
-using either = std::conditional_t<std::is_same_v<FutA, FutB>, FutA, either_impl<FutA, FutB>>;
+using either = std::conditional_t<std::is_same_v<FutA, FutB>, FutA,
+				  either_impl<FutA, FutB>>;
 }
