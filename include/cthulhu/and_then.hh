@@ -38,8 +38,8 @@ auto and_then_impl(result<T, E> &&v, F &f) {
 		if constexpr (is_result<f_out>::value) {
 			using ret_type = either<func_output, B>;
 			if (v) {
-				auto fut = helper::invoke(f, std::move(*v));
-				return ret_type(std::move(fut));
+				return ret_type(
+					helper::invoke(f, std::move(*v)));
 			}
 			return ret_type(B(std::move(v.error())));
 		} else {
