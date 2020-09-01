@@ -6,7 +6,7 @@
 
 namespace cthulhu {
 template <typename FutA, typename FutB>
-class CTHULHU_NODISCARD either : public future<either<FutA, FutB>> {
+class CTHULHU_NODISCARD either_impl : public future<either_impl<FutA, FutB>> {
 	bool is_a;
 	union {
 		FutA futa;
@@ -16,18 +16,18 @@ class CTHULHU_NODISCARD either : public future<either<FutA, FutB>> {
 public:
 	using output = typename FutA::output;
 	static_assert(std::is_same_v<typename FutB::output, output>);
-	either(FutA &&a) : is_a(true), futa(std::move(a)) {
+	either_impl(FutA &&a) : is_a(true), futa(std::move(a)) {
 	}
-	either(FutB &&b) : is_a(false), futb(std::move(b)) {
+	either_impl(FutB &&b) : is_a(false), futb(std::move(b)) {
 	}
-	~either() {
+	~either_impl() {
 		if (is_a) {
 			futa.~FutA();
 		} else {
 			futb.~FutB();
 		}
 	}
-	either(either &&o) : is_a(o.is_a) {
+	either_impl(either_impl &&o) : is_a(o.is_a) {
 		if (is_a) {
 			new (&futa) FutA(std::move(o.futa));
 		} else {
@@ -44,18 +44,6 @@ public:
 };
 
 // Specialization for when both future types are the same
-template <typename Fut>
-class CTHULHU_NODISCARD either<Fut, Fut> : public future<either<Fut, Fut>> {
-	Fut fut;
-
-public:
-	using output = typename Fut::output;
-	either(Fut &&fut) : fut(std::move(fut)) {
-	}
-	either(either &&o) : fut(std::move(o.fut)) {
-	}
-	std::optional<output> poll(reactor &react) {
-		return fut.poll(react);
-	}
-};
+template <typename FutA, typename FutB>
+using either = std::conditional_t<std::is_same_v<FutA, FutB>, FutA, either_impl<FutA, FutB>>;
 }
