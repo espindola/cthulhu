@@ -121,7 +121,7 @@ class then_future<Fut, F, true> : public future<then_future<Fut, F, true>> {
 public:
 	using output = typename func_output::output;
 
-	then_future(Fut fut, F f) : before{std::move(fut), std::move(f)} {
+	then_future(Fut&& fut, F f) : before{std::move(fut), std::move(f)} {
 	}
 	then_future(then_future &&o) : call_done(false) {
 		// call_done becomes true on the first call to poll. After that,
@@ -163,7 +163,7 @@ class then_future<Fut, F, false> : public future<then_future<Fut, F, false>> {
 public:
 	using output = devoid<typename helper::func_output>;
 
-	then_future(Fut fut, F f) : fut(std::move(fut)), func(std::move(f)) {
+	then_future(Fut&& fut, F f) : fut(std::move(fut)), func(std::move(f)) {
 	}
 
 	std::optional<output> poll(reactor &react) {
