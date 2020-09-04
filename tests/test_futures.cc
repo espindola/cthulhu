@@ -153,6 +153,21 @@ static auto test_and_then_7() {
 		});
 }
 
+static int inc(int x) {
+	return x + 1;
+}
+
+static auto test_then_with_func() {
+	return ready_future<int>(7).then(inc);
+}
+
+static auto test_and_then_with_func() {
+	return ready_future<result<int, bar>>(8).and_then(inc).then(
+		[](result<int, bar> x) {
+			return *x;
+		});
+}
+
 int main(int argc, const char *argv[]) {
 	run_test(test_ready, 1);
 	run_test(test_not_ready, 2);
@@ -163,5 +178,7 @@ int main(int argc, const char *argv[]) {
 	run_test(test_and_then_5, 5);
 	run_test(test_and_then_6, 6);
 	run_test(test_and_then_7, 7);
+	run_test(test_then_with_func, 8);
+	run_test(test_and_then_with_func, 9);
 	return 0;
 }

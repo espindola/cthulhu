@@ -78,7 +78,7 @@ auto future<Self>::and_then(F &&f) {
 	using E = typename s_output::error_type;
 
 	return then([f = std::move(f)](s_output &&v) mutable {
-		return internal::and_then_impl<T, E, F>(std::move(v), f);
+		return internal::and_then_impl<T, E>(std::move(v), f);
 	});
 }
 }
