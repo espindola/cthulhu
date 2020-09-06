@@ -72,11 +72,17 @@ public:
 	};
 };
 
-class CTHULHU_NODISCARD ready_future_v : public ready_future<monostate> {
+template <>
+class CTHULHU_NODISCARD ready_future<monostate> : public future<ready_future<monostate>> {
 public:
-	ready_future_v() : ready_future<monostate>(monostate{}) {
-	}
+	using output = monostate;
+	std::optional<output> poll(reactor &react) {
+		return monostate{};
+	};
 };
+
+using ready_future_v = ready_future<monostate>;
+static_assert(std::is_empty_v<ready_future_v>);
 
 template <typename T>
 using devoid = std::conditional_t<std::is_void_v<T>, monostate, T>;
