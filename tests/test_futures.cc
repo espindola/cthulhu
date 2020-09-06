@@ -18,7 +18,7 @@ static void run_test(F &&f, int res) {
 }
 
 static auto test_ready() {
-	return ready_future_v()
+	return ready_future<>()
 		.then([] {
 		})
 		.then([] {

@@ -57,7 +57,7 @@ public:
 	and_then_future<Self, F> and_then(F &&f);
 };
 
-template <typename T>
+template <typename T = monostate>
 class CTHULHU_NODISCARD ready_future : public future<ready_future<T>> {
 	T value;
 
@@ -81,8 +81,7 @@ public:
 	};
 };
 
-using ready_future_v = ready_future<monostate>;
-static_assert(std::is_empty_v<ready_future_v>);
+static_assert(std::is_empty_v<ready_future<>>);
 
 template <typename T>
 using devoid = std::conditional_t<std::is_void_v<T>, monostate, T>;
