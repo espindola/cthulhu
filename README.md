@@ -21,7 +21,7 @@ easy, just call the lambda and return a future wrapping whatever the
 lambda returns.
 
 If the value is not yet available, we have a problem. Assume the
-lambda returns a `double'. In this case `future::then` must return a
+lambda returns a `double`. In this case `future::then` must return a
 `future<double>`, but that type cannot encode all the possible ways
 the current `this` future value might become available. For example,
 if the `int` is being read from a file, the file descriptor must be
@@ -54,7 +54,7 @@ type to represent a future that produces an int. In Cthulhu, a future
 that produces an int is represented by a class that has the following
 members:
 
-```
+```c++
 	using output = int;
 	std::optional<int> poll(reactor &react);
 ```
@@ -68,7 +68,7 @@ future that is created ready (`ready_future<int>`).
 Since we want to have some operations that apply to any future (like
 `future::then`), the type also needs to inherit from future:
 
-```
+```c++
 struct my_future : public future ... {
 	using output = int;
 	std::optional<int> poll(reactor &react);
@@ -80,7 +80,7 @@ the real type of `this` since we don't want to force dynamic
 allocation or make `poll` virtual. That is done by using the Curiously
 Recurring Template Pattern:
 
-```
+```c++
 struct my_future : public future<my_future> {
 	using output = int;
 	std::optional<int> poll(reactor &react);
@@ -89,7 +89,7 @@ struct my_future : public future<my_future> {
 
 With this the implementation of `future::then` when used in
 
-```
+```c++
 	my_future().then([](int x) { ...});
 ```
 
@@ -122,7 +122,7 @@ In Seastar a function that call another function to get a future that
 produces an `int` and returns a future that produces that value plus
 one is:
 
-```
+```c++
 #include <seastar/core/future.hh>
 using namespace seastar;
 future<int> get() noexcept;
@@ -142,7 +142,7 @@ bytes.
 
 The corresponding code in Cthulhu is
 
-```
+```c++
 #include <cthulhu/future.hh>
 using namespace cthulhu;
 struct my_future : public future<my_future> {
