@@ -1,1 +1,1 @@
-moved to https://sr.ht/~espindola/cthulhu/
+moved to https://codeberg.org/espindola/cthulhu
